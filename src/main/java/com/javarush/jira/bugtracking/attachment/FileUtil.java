@@ -12,9 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
 @UtilityClass
 public class FileUtil {
@@ -25,14 +23,20 @@ public class FileUtil {
             throw new IllegalRequestDataException("Select a file to upload.");
         }
 
-        File dir = new File(directoryPath);
-        if (dir.exists() || dir.mkdirs()) {
-            File file = new File(directoryPath + fileName);
-            try (OutputStream outStream = new FileOutputStream(file)) {
-                outStream.write(multipartFile.getBytes());
-            } catch (IOException ex) {
-                throw new IllegalRequestDataException("Failed to upload file" + multipartFile.getOriginalFilename());
-            }
+        Path directory = Path.of(directoryPath);
+
+        try {
+            Files.createDirectories(directory);
+
+            Path targetFilePath = directory.resolve(fileName);
+
+            Files.copy(multipartFile.getInputStream(), targetFilePath, StandardCopyOption.REPLACE_EXISTING);
+
+        } catch (FileAlreadyExistsException ex) {
+            throw new IllegalRequestDataException("File already exists: " + fileName);
+
+        } catch (IOException ex) {
+            throw new IllegalRequestDataException("Failed to upload file: " + multipartFile.getOriginalFilename());
         }
     }
 
